@@ -1,0 +1,17 @@
+
+<link href="https://store.akamai.steamstatic.com/public/shared/css/motiva_sans.css?v=Rc2hpzg2Ex3T&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/shared/css/shared_global.css?v=QE0cUHo6dJZI&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/shared/css/buttons.css?v=6PFqex5UPprb&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/css/v6/store.css?v=SKTxcj16eYn6&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/shared/css/user_reviews.css?v=bytTZBM7bzWv&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/shared/css/store_game_shared.css?v=3762vFgJovj_&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/css/v6/game.css?v=XIGXqSINxWy6&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/css/v6/recommended.css?v=urEm6TCtV1GU&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/css/v6/user_reviews_rewards.css?v=5-HJZa1v4wFP&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/shared/css/apphub.css?v=50EOEVc1LdIK&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/shared/css/ui-lightness/jquery-ui-1.7.2.custom.css?v=.23LkAmA0IgZV" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/css/v6/game_mob.css?v=uTSh5bLmXB3l&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/shared/css/shared_responsive.css?v=cuGNP1dzetug&amp;l=english" rel="stylesheet" type="text/css" >
+<link href="https://store.akamai.steamstatic.com/public/css/applications/store/main.css?v=hA0Q7r1pGf3s&amp;l=english" rel="stylesheet" type="text/css" >
+
+<%= content %>
