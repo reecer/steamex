@@ -25,12 +25,14 @@ defmodule ReviewFetcher do
   # - TagId
 
   @fetch_delay 500
+  @max_reviews 1000
   
   def start_link(appid) do
     GenServer.start_link(__MODULE__, %{
       appid: appid,
       reviews: [],
-      cursor: "*"
+      cursor: "*",
+      meta: %{title: "", tags: []}
     }, name: {:global, {:via, Registry, {Registry, __MODULE__}}})
   end
   
@@ -38,17 +40,17 @@ defmodule ReviewFetcher do
     {:ok, state}
   end
   
-  defp url(appid, cursor \\ "*") do
-    "https://store.steampowered.com/appreviews/#{appid}?cursor=#{URI.encode_www_form(cursor)}&json=0&num_per_page=500&language=english"
+  def url(appid, cursor \\ "*") do
+    "https://store.steampowered.com/appreviews/#{appid}?cursor=#{URI.encode_www_form(cursor)}&json=0&language=english"
   end
 
-  defp meta_url(appid) do
-    "https://store.steampowered.com/apphoverpublic/#{appid}?review_score_preference=0&l=english&pagev6=true"
-
-
-    # Image
-    # "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg"
+  def meta_url(appid) do
+    "https://store.steampowered.com/apphoverpublic/#{appid}?l=english"
   end
+  
+  # def img_url(appid) do
+  #   "https://cdn.akamai.steamstatic.com/steam/apps/#{appid}/header.jpg"
+  # end
   
   
 
@@ -57,14 +59,43 @@ defmodule ReviewFetcher do
     send(self, :fetch_reviews)
   end
   
+  def get(self) do
+    GenServer.call(self, :get_state)
+  end
+  
+  def handle_call(:get_state, _from, state) do
+    {:reply, state, state}
+  end
+  
   def handle_info(:fetch_metadata, state) do
-    IO.puts "TODO: fetch_metadata"
-    {:noreply, state}
+    IO.puts "fetch_metadata"
+    uri = meta_url(state.appid)
+    case fetch_from_url(uri, false) do
+      {:ok, raw_html} ->
+        case Floki.parse_document(raw_html) do
+          {:ok, doc} ->
+            title = doc
+              |> Floki.find(".hover_title")
+              |> Floki.text
+              
+            tags = doc 
+              |> Floki.find("div.app_tag") 
+              |> Enum.map(&Floki.text/1)
+            {:noreply, %{state | meta: %{title: title, tags: tags}}}
+          {:error, error} ->
+            IO.puts error
+            {:stop, error, state}
+        end
+      {:error, error} ->
+        IO.puts error
+        {:stop, error, state}
+    end
   end
   
   def handle_info(:fetch_reviews, state = %{appid: appid, reviews: reviews, cursor: cursor}) do
+    IO.puts "fetch_reviews"
     uri = url(appid, cursor)
-    case fetch_reviews_from_url(uri) do
+    case fetch_from_url(uri) do
       {:ok, %{"success" => 1, "html" => html, "cursor" => next_cursor}} ->
         case extract_from_html(html) do
             {:error, error} ->
@@ -73,18 +104,16 @@ defmodule ReviewFetcher do
                 {:stop, error, state}
 
             next_reviews ->
-                reviews = reviews ++ [next_reviews]
+                reviews = reviews ++ next_reviews
                 IO.puts("Fetched #{Enum.count(next_reviews)} reviews for app #{appid}. Total: #{Enum.count(reviews)}.")
                 IO.puts("Next cursor: #{next_cursor}")
-            
-                case next_cursor do
-                  "" -> # No more cursor, we're done.
+                
+                if next_cursor == "" || Enum.count(reviews) >= @max_reviews do
                     handle_final_reviews(appid, reviews)
-                    {:noreply, %{appid: appid, cursor: next_cursor, reviews: reviews}}
-        
-                  _ ->
+                    {:noreply, %{state | cursor: next_cursor, reviews: reviews}}
+                else
                     Process.send_after(self(), :fetch_reviews, @fetch_delay)
-                    {:noreply, %{appid: appid, cursor: next_cursor, reviews: reviews}}
+                    {:noreply, %{state | cursor: next_cursor, reviews: reviews}}
                 end
         end
 
@@ -98,11 +127,15 @@ defmodule ReviewFetcher do
     end
   end
   
-  defp fetch_reviews_from_url(url) do
+  def fetch_from_url(url, json? \\ true) do
     IO.puts "Fetching #{url}"
     case HTTPoison.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-        Jason.decode(body) 
+        if json? do
+          Jason.decode(body) 
+        else
+          {:ok, body}
+        end
           
       {:ok, %HTTPoison.Response{status_code: status}} ->
         {:error, "Request failed with status code #{status}"}
@@ -112,22 +145,24 @@ defmodule ReviewFetcher do
     end
   end
 
-  defp handle_final_reviews(appid, reviews) do
-    # Do something with the reviews
-    IO.puts("Final review count for app #{appid}: #{Enum.count(reviews)}")
-  end
-
-  defp extract_from_html(review_html) do
+  def extract_from_html(review_html) do
       html = review_html 
           |> String.replace(~r/\\n|\\t|\\r/u, "") 
           |> String.replace("\\\"", "\"") 
           
       case Floki.parse_document(html) do
           {:ok, doc} ->
-            doc |> Floki.find("div.review_box")
+            doc 
+              |> Floki.find("div.review_box")
+              |> Enum.map(&Floki.raw_html/1)
           err ->
             err
       end
+  end
+
+  defp handle_final_reviews(appid, reviews) do
+    # Do something with the reviews
+    IO.puts("Final review count for app #{appid}: #{Enum.count(reviews)}")
   end
 end
 
