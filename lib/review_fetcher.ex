@@ -23,19 +23,23 @@ defmodule ReviewFetcher do
   # Game-Tags
   # - AppId
   # - TagId
+
+  @fetch_delay 500
   
   def start_link(appid) do
     GenServer.start_link(__MODULE__, %{
-      appid: appid, 
+      appid: appid,
+      reviews: [],
+      cursor: "*"
     }, name: {:global, {:via, Registry, {Registry, __MODULE__}}})
   end
   
   def init(state) do
-    {:ok, state, {:continue, :start}}
+    {:ok, state}
   end
   
   defp url(appid, cursor \\ "*") do
-    "https://store.steampowered.com/appreviews/#{appid}?cursor=#{cursor}&json=0&num_per_page=500&language=english"
+    "https://store.steampowered.com/appreviews/#{appid}?cursor=#{URI.encode_www_form(cursor)}&json=0&num_per_page=500&language=english"
   end
 
   defp meta_url(appid) do
@@ -48,10 +52,9 @@ defmodule ReviewFetcher do
   
   
 
-  def handle_continue(:start, state) do
-    send(self, :fetch_reviews)
+  def fetch(self) do
     send(self, :fetch_metadata)
-    {:noreply, state}
+    send(self, :fetch_reviews)
   end
   
   def handle_info(:fetch_metadata, state) do
@@ -59,41 +62,44 @@ defmodule ReviewFetcher do
     {:noreply, state}
   end
   
-  def handle_info(:fetch_reviews, state) do
-    fetch_reviews_recursive(state.appid)
-    {:noreply, state}
-  end
-
-  defp fetch_reviews_recursive(appid, cursor \\ "*", reviews \\ []) do
+  def handle_info(:fetch_reviews, state = %{appid: appid, reviews: reviews, cursor: cursor}) do
     uri = url(appid, cursor)
     case fetch_reviews_from_url(uri) do
-      {:ok, %{"error" => error}} ->
-        IO.puts "Error fetching: #{error}"
-      
-      {:ok, %{"success" => 1, "html" => html, "cursor" => cursor}} ->
-        IO.puts("Fetched #{String.length(html)} characters for app #{appid}.")
+      {:ok, %{"success" => 1, "html" => html, "cursor" => next_cursor}} ->
         case extract_from_html(html) do
-            {:error, err} ->
+            {:error, error} ->
                 IO.puts "Error parsing html. Stopping..."
-                IO.inspect err
-            review ->
-                reviews = reviews ++ [review]
+                IO.inspect error
+                {:stop, error, state}
+
+            next_reviews ->
+                reviews = reviews ++ [next_reviews]
+                IO.puts("Fetched #{Enum.count(next_reviews)} reviews for app #{appid}. Total: #{Enum.count(reviews)}.")
+                IO.puts("Next cursor: #{next_cursor}")
             
-                case cursor do
+                case next_cursor do
                   "" -> # No more cursor, we're done.
                     handle_final_reviews(appid, reviews)
+                    {:noreply, %{appid: appid, cursor: next_cursor, reviews: reviews}}
         
                   _ ->
-                    IO.puts "TODO: next cursor: #{cursor}"
-                    fetch_reviews_recursive(appid, cursor, reviews)
+                    Process.send_after(self(), :fetch_reviews, @fetch_delay)
+                    {:noreply, %{appid: appid, cursor: next_cursor, reviews: reviews}}
                 end
         end
-      {:error, reason} ->
-        IO.puts reason
+
+      {:ok, %{"error" => error}} ->
+        IO.puts "Error fetching: #{error}"
+        {:stop, error, state}
+      
+      {:error, error} ->
+        IO.puts error
+        {:stop, error, state}
     end
   end
   
   defp fetch_reviews_from_url(url) do
+    IO.puts "Fetching #{url}"
     case HTTPoison.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         Jason.decode(body) 
