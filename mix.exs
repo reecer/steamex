@@ -14,6 +14,7 @@ defmodule Steamex.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      mod: {Steamex, []},
       extra_applications: [:logger]
     ]
   end
@@ -23,7 +24,8 @@ defmodule Steamex.MixProject do
     [
     {:httpoison, "~> 2.0"},
     {:floki, "~> 0.34.0"},
-    {:jason, "~> 1.4"}
+    {:jason, "~> 1.4"},
+    {:opq, "~> 4.0"}
     ]
   end
 end
