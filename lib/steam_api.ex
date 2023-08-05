@@ -1,31 +1,4 @@
 defmodule Steamex.SteamAPI do
-  @moduledoc """
-  Grab a games metadata and reviews.
-  """
-
-  # TODO: use a database instead of ETS. Faster, more permanent and flexible.
-  # Easier to fetch random and similar games
-
-  # Only grab X number of reviews...some have millions
-
-  # Game
-  # - Name
-  # - AppId
-
-  # Review
-  # - AppId
-  # - Content (html)
-
-  # Tag
-  # - Name
-
-  # Game-Tags
-  # - AppId
-  # - TagId
-
-  @fetch_delay 500
-  @max_reviews 1000
-
   def url(appid, cursor \\ "*") do
     "https://store.steampowered.com/appreviews/#{appid}?cursor=#{URI.encode_www_form(cursor)}&json=0&language=english"
   end
@@ -34,13 +7,7 @@ defmodule Steamex.SteamAPI do
     "https://store.steampowered.com/apphoverpublic/#{appid}?l=english"
   end
 
-  # def img_url(appid) do
-  #   "https://cdn.akamai.steamstatic.com/steam/apps/#{appid}/header.jpg"
-  # end
-
-  # TODO: don't save metadata in state
   def fetch_metadata(appid) do
-    IO.puts "fetch_metadata"
     uri = meta_url(appid)
     case fetch_from_url(uri, false) do
       {:ok, raw_html} ->
@@ -67,22 +34,15 @@ defmodule Steamex.SteamAPI do
   end
 
   def fetch_reviews(appid, cursor) do
-  # TODO: don't save reviews in state
-  # def handle_info(:fetch_reviews, state = %{appid: appid, reviews: reviews, cursor: cursor}) do
-    IO.puts "fetch_reviews"
     uri = url(appid, cursor)
     case fetch_from_url(uri) do
       {:ok, %{"success" => 1, "html" => html, "cursor" => next_cursor}} ->
         case extract_from_html(html) do
-            {:error, error} ->
-                IO.puts "Error parsing html. Stopping..."
-                IO.inspect error
-                {:error, error}
+          {:error, error} ->
+            {:error, error}
 
-            reviews ->
-                IO.puts("Fetched #{Enum.count(reviews)} reviews for app #{appid}.")
-                IO.puts("Next cursor: #{next_cursor}")
-                {:ok, reviews, next_cursor}
+          reviews ->
+            {:ok, reviews, next_cursor}
         end
 
       {:ok, %{"error" => error}} ->
@@ -96,7 +56,6 @@ defmodule Steamex.SteamAPI do
   end
 
   def fetch_from_url(url, json? \\ true) do
-    IO.puts "Fetching #{url}"
     case HTTPoison.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         if json? do

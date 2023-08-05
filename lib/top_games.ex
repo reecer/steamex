@@ -1,10 +1,10 @@
-defmodule TopGames do
+defmodule Steamex.TopGames do
   @per_page 100 # Max is 100
 
   def fetch(n \\ 1000) do
     Enum.reduce(1..Integer.floor_div(n, @per_page), [], fn i, acc ->
       acc ++ extract_ids_from_url(url((i-1) * @per_page))
-    end)
+    end) |> Enum.take(n)
   end
 
   defp url(offset) do
