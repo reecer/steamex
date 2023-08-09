@@ -24,7 +24,7 @@ defmodule Steamex.Worker do
         new_count = count + Enum.count(reviews)
 
         if new_count < max && String.length(cursor) > 0 do
-          OPQ.enqueue(:steam, Steamex.Worker, :get_reviews, [appid, cursor, new_count, max])
+          OPQ.enqueue(:steam, Steamex.Worker, :get_reviews, [from, appid, cursor, new_count, max])
         else
           IO.puts "ReviewWorker: Done grabbing reviews for #{appid}. Count: #{new_count}"
         end
