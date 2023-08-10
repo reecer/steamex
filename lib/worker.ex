@@ -1,9 +1,6 @@
 defmodule Steamex.Worker do
   def get_metadata(from, appid) do
-    IO.puts "MetaWorker created for #{appid}"
     res = Steamex.SteamAPI.fetch_metadata(appid)
-    # t = Task.async(Steamex.SteamAPI, :fetch_metadata, [appid])
-    # case Task.await(t) do
     case res do
       {:ok, meta} ->
         send(from, {:metadata, appid, meta})
@@ -14,10 +11,7 @@ defmodule Steamex.Worker do
   end
 
   def get_reviews(from, appid, cursor, count, max) do
-    IO.puts "ReviewWorker created for #{appid} (#{cursor})"
     res = Steamex.SteamAPI.fetch_reviews(appid, cursor)
-    # t = Task.async(Steamex.SteamAPI, :fetch_reviews, [appid, cursor])
-    # case Task.await(t) do
     case res do
       {:ok, reviews, cursor} ->
         send(from, {:reviews, appid, reviews})
