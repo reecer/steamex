@@ -3,8 +3,8 @@ defmodule Steamex do
   Scrape n reviews of top n games
   """
 
-  def init(workers) do
-    OPQ.init(name: :steam, workers: workers)
+  def init(workers, interval \\ 5000) do
+    OPQ.init(name: :steam, workers: workers, interval: interval)
   end
 
   def stop do
