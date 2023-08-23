@@ -1,6 +1,6 @@
 defmodule Steamex.SteamAPI do
   def url(appid, cursor \\ "*") do
-    "https://store.steampowered.com/appreviews/#{appid}?cursor=#{URI.encode_www_form(cursor)}&json=0&language=english"
+    "https://store.steampowered.com/appreviews/#{appid}?cursor=#{URI.encode_www_form(cursor)}&json=0&language=english&filter=funny"
   end
 
   def meta_url(appid) do
